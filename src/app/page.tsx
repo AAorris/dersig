@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { CheckCircleIcon, XCircleIcon, ArrowRightIcon } from "lucide-react";
 import walkthrough from "@/lib/walkthrough";
 
+export const runtime = "edge";
+
 export default async function CryptoOperations({
 	searchParams,
 }: {
