@@ -5,12 +5,18 @@ import {
 	edwardsToMontgomeryPriv,
 } from "@noble/curves/ed25519";
 import * as dersig from "./dersig";
-import type {
-	Agent,
-	PrivateKeyPair,
-	SharedSecret,
-	SignedAgreement,
-} from "./types";
+import type { Identity, PrivateKeyPair, SharedSecret } from "./types";
+
+function concatUint8Arrays(...arrays: Uint8Array[]): Uint8Array {
+	const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0);
+	const result = new Uint8Array(totalLength);
+	let offset = 0;
+	for (const arr of arrays) {
+		result.set(arr, offset);
+		offset += arr.length;
+	}
+	return result;
+}
 
 /**
  * Convert an Ed25519 public key to X25519 format for DH operations.
@@ -94,21 +100,25 @@ function deriveKey(
 }
 
 function computeSecretWithIdentity(
-	identity: PrivateKeyPair,
-	peer: Agent,
-	scope: string,
+	privateIdentity: PrivateKeyPair,
+	publicIdentity: Identity,
+	topic: string,
 ): SharedSecret {
 	const participants = [
-		identity.fingerprint ?? dersig.fingerprint(identity.publicKey),
-		peer.fingerprint,
+		privateIdentity.fingerprint ??
+			dersig.fingerprint(privateIdentity.publicKey),
+		publicIdentity.fingerprint,
 	].sort();
-	const infoString = `${scope}:${participants.join("+")}`;
+	const infoString = `${topic}:${participants.join("+")}`;
 	return {
 		info: infoString,
-		value: Buffer.from(
-			computeSharedSecret(identity.privateKey, peer.publicKey, infoString),
-		).toString(dersig.encoding),
-		parties: participants,
+		value: dersig.encode(
+			computeSharedSecret(
+				privateIdentity.privateKey,
+				publicIdentity.publicKey,
+				infoString,
+			),
+		),
 	};
 }
 
@@ -120,26 +130,28 @@ function computeSecretWithIdentity(
  */
 function encrypt(secret: SharedSecret, message: string): string {
 	// Generate a random IV (initialization vector)
-	const iv = crypto.randomBytes(12);
+	const iv = new Uint8Array(crypto.randomBytes(12));
 
 	// Create cipher using the shared secret
 	const cipher = crypto.createCipheriv(
 		"aes-256-gcm",
-		Buffer.from(secret.value, dersig.encoding),
+		dersig.decode(secret.value),
 		iv,
 	);
 
 	// Encrypt the message
-	const ciphertext = Buffer.concat([
-		cipher.update(message, "utf8"),
-		cipher.final(),
-	]);
+
+	const updated = new Uint8Array(cipher.update(message, "utf8"));
+	const final = new Uint8Array(cipher.final());
+	const ciphertext = concatUint8Arrays(updated, final);
 
 	// Get the auth tag
-	const authTag = cipher.getAuthTag();
+	const authTag = new Uint8Array(cipher.getAuthTag());
 
 	// Combine IV + ciphertext + auth tag and encode
-	return Buffer.concat([iv, ciphertext, authTag]).toString(dersig.encoding);
+	return Buffer.from(concatUint8Arrays(iv, ciphertext, authTag)).toString(
+		dersig.encoding,
+	);
 }
 
 /**
@@ -161,19 +173,19 @@ function decrypt(secret: SharedSecret, encryptedMessage: string): string {
 	// Create decipher
 	const decipher = crypto.createDecipheriv(
 		"aes-256-gcm",
-		Buffer.from(secret.value, dersig.encoding),
-		iv,
+		dersig.decode(secret.value),
+		new Uint8Array(iv),
 	);
 
-	decipher.setAuthTag(authTag);
+	decipher.setAuthTag(new Uint8Array(authTag));
 
 	// Decrypt
 	try {
-		const decrypted = Buffer.concat([
-			decipher.update(ciphertext),
-			decipher.final(),
-		]);
-		return decrypted.toString("utf8");
+		const decrypted = concatUint8Arrays(
+			new Uint8Array(decipher.update(new Uint8Array(ciphertext))),
+			new Uint8Array(decipher.final()),
+		);
+		return Buffer.from(decrypted).toString("utf8");
 	} catch (error) {
 		throw new Error("Decryption failed: Invalid key or tampered message");
 	}

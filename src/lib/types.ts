@@ -1,4 +1,4 @@
-export interface Agent {
+export interface Identity {
 	publicKey: string;
 	fingerprint: string;
 }
@@ -10,13 +10,6 @@ export interface PrivateKeyPair {
 }
 
 export interface SharedSecret {
-	info: string;
+	info?: string;
 	value: string;
-	parties: string[];
-}
-
-export interface SignedAgreement {
-	info: string;
-	value: string;
-	parties: string[];
 }

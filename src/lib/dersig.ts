@@ -1,13 +1,18 @@
 import * as crypto from "node:crypto";
-import { Agent, PrivateKeyPair } from "./types";
+import type { PrivateKeyPair } from "./types";
 
 export const encoding = "base64url" as const;
+
+export const encode = (value: Uint8Array): string =>
+	Buffer.from(value).toString(encoding);
+export const decode = (value: string): Uint8Array =>
+	new Uint8Array(Buffer.from(value, encoding));
 
 /**
  * Generates a base64-encoded Ed25519 private key.
  * @returns {string} Base64-encoded private key.
  */
-function generateBase64PrivateKey(): string {
+function generatePrivateKey(): string {
 	const { privateKey } = crypto.generateKeyPairSync("ed25519");
 	const privateKeyRaw = privateKey
 		.export({ format: "der", type: "pkcs8" })
@@ -20,7 +25,7 @@ function generateBase64PrivateKey(): string {
  * @param {string} privateKeyBase64 - Base64-encoded private key.
  * @returns {string} Base64-encoded public key.
  */
-function deriveBase64PublicKey(privateKeyBase64: string): string {
+function derivePublicKey(privateKeyBase64: string): string {
 	const privateKeyRaw = Buffer.from(privateKeyBase64, encoding);
 	const privateKeyFromRaw = crypto.createPrivateKey({
 		key: Buffer.concat([
@@ -38,9 +43,11 @@ function deriveBase64PublicKey(privateKeyBase64: string): string {
 }
 
 // Identity management functions
-function createIdentity(): PrivateKeyPair & { fingerprint: string } {
-	const privateKey = generateBase64PrivateKey();
-	const publicKey = deriveBase64PublicKey(privateKey);
+function createIdentity(): Omit<PrivateKeyPair, "fingerprint"> & {
+	fingerprint: string;
+} {
+	const privateKey = generatePrivateKey();
+	const publicKey = derivePublicKey(privateKey);
 
 	return {
 		publicKey,
@@ -117,8 +124,8 @@ export function createAgentDto(publicKey: string): Agent {
 
 // Exporting the functions as a module
 export {
-	generateBase64PrivateKey,
-	deriveBase64PublicKey,
+	generatePrivateKey,
+	derivePublicKey,
 	signMessage,
 	verifySignature,
 	createIdentity,

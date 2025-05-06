@@ -19,12 +19,10 @@ type CryptoData = {
       publicKey: string
     }
   }
-  documents: {
-    server: { info: string; value: string }
-    client: { info: string; value: string }
-  }
   messages: {
     encrypted: string
+    sharedSecretFingerprintServer: string
+    sharedSecretFingerprintClient: string
     decryptedServer: string
     decryptedClient: string
   }
@@ -39,7 +37,11 @@ export default function HKDFVisualization({ initialData }: HKDFVisualizationProp
   const [data, setData] = useState<CryptoData>(initialData)
   // Function to fetch new cryptographic data from the server
   const refreshCryptography = async () => {
-    window.location.reload()
+    if (!location.search.includes("privateKey")) {
+      window.location.reload()
+    } else {
+      location.href = "/hkdf";
+    }
   }
 
   return (
@@ -58,7 +60,7 @@ export default function HKDFVisualization({ initialData }: HKDFVisualizationProp
             ) : (
               <>
                 <Key className="mr-2 h-4 w-4" />
-                Generate New Keys
+                Generate New Key
               </>
             )}
           </Button>
@@ -95,9 +97,13 @@ export default function HKDFVisualization({ initialData }: HKDFVisualizationProp
                     <Info className="h-4 w-4 text-muted-foreground" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="font-mono text-xs">{data.identities.server.fingerprint}</p>
+                    <p className="font-mono text-xs">{data.identities.server.publicKey}</p>
                   </TooltipContent>
                 </Tooltip>
+              </div>
+              <div className="flex items-center space-x-2 bg-muted rounded-lg p-2 mt-2">
+                {/* full pubkey */}
+                <p className="font-mono text-xs">{data.identities.server.publicKey}</p>
               </div>
             </CardContent>
           </Card>
@@ -131,58 +137,17 @@ export default function HKDFVisualization({ initialData }: HKDFVisualizationProp
                     <Info className="h-4 w-4 text-muted-foreground" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="font-mono text-xs">{data.identities.client.fingerprint}</p>
+                    <p className="font-mono text-xs">{data.identities.client.publicKey}</p>
                   </TooltipContent>
                 </Tooltip>
+              </div>
+              <div className="flex items-center space-x-2 bg-muted rounded-lg p-2 mt-2">
+                {/* full pubkey */}
+                <p className="font-mono text-xs">{data.identities.client.publicKey}</p>
               </div>
             </CardContent>
           </Card>
         </div>
-
-        {/* Mutually Signed Documents */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center">
-                <FileCheck className="mr-2 h-5 w-5 text-primary" />
-                Document (Mutually Signed)
-              </CardTitle>
-              <Tooltip>
-                <TooltipTrigger>
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-sm">
-                  <p>A document signed by both parties to verify authenticity</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <CardDescription>Cryptographically signed by both server and user</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div className="flex items-center w-full">
-                  <FileCheck className="mr-2 h-4 w-4 text-primary" />
-                  <p className="">identity:generated</p>
-                  <div className="flex-grow">{' '}</div>
-                  <p className="font-mono text-xs truncate">
-                    {data.documents.server.value}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div className="flex items-center w-full">
-                  <FileCheck className="mr-2 h-4 w-4 text-primary" />
-                  <p className="">identity:generated</p>
-                  <div className="flex-grow">{' '}</div>
-                  <p className="font-mono text-xs truncate">
-                    {data.documents.client.value}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Decrypted Messages */}
         <Card>
@@ -197,7 +162,7 @@ export default function HKDFVisualization({ initialData }: HKDFVisualizationProp
                   <Info className="h-4 w-4 text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent className="max-w-sm">
-                  <p>Messages decrypted by both parties using their shared secret</p>
+                  <p> <code className="font-mono text-xs">{data.messages.encrypted}</code> — Message decrypted by both parties using their shared secret</p>
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -208,8 +173,16 @@ export default function HKDFVisualization({ initialData }: HKDFVisualizationProp
               <div className="grid md:grid-cols-2 gap-4">
                 {/* Server's copy */}
                 <div className="p-3 bg-muted rounded-lg">
+                  {/** decrypted message */}
                   <div className="flex items-center mb-2">
-                    <Unlock className="mr-2 h-4 w-4 text-green-500" />
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Unlock className="mr-2 h-4 w-4 text-green-500" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="font-mono text-xs">Shared secret fingerprint: {data.messages.sharedSecretFingerprintServer}</p>
+                      </TooltipContent>
+                    </Tooltip>
                     <span className="text-sm font-medium">My Copy</span>
                   </div>
                   <p className="text-sm">{data.messages.decryptedServer}</p>
@@ -217,8 +190,16 @@ export default function HKDFVisualization({ initialData }: HKDFVisualizationProp
 
                 {/* Client's copy */}
                 <div className="p-3 bg-muted rounded-lg">
+                  {/** decrypted message */}
                   <div className="flex items-center mb-2">
-                    <Unlock className="mr-2 h-4 w-4 text-blue-500" />
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Unlock className="mr-2 h-4 w-4 text-blue-500" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="font-mono text-xs">Shared secret fingerprint: {data.messages.sharedSecretFingerprintClient}</p>
+                      </TooltipContent>
+                    </Tooltip>
                     <span className="text-sm font-medium">Their Copy</span>
                   </div>
                   <p className="text-sm">{data.messages.decryptedClient}</p>

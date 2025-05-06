@@ -1,9 +1,9 @@
 import HKDFVisualization from "./component"
-import { fingerprint, createIdentity } from "@/lib/dersig"
-import { computeSecretWithIdentity, encrypt, decrypt, createDocument } from "@/lib/xsig"
+import { fingerprint, createIdentity, derivePublicKey } from "@/lib/dersig"
+import { computeSecretWithIdentity, encrypt, decrypt } from "@/lib/xsig"
 
 // Server-side function to generate cryptographic data
-async function generateCryptographicData() {
+async function generateCryptographicData(privateKey?: string) {
   // Get server identity from environment variables
   const serverIdentity = {
     privateKey: process.env.DERSIG_PRIVATE_KEY as string,
@@ -12,16 +12,18 @@ async function generateCryptographicData() {
   }
 
   // Generate client identity
-  const clientIdentity = createIdentity()
+  const clientIdentity = privateKey ? (
+    {
+      privateKey,
+      publicKey: derivePublicKey(privateKey),
+      fingerprint: fingerprint(derivePublicKey(privateKey)),
+    }
+  ) : createIdentity()
 
   // Compute shared secrets
   const sharedSecret = computeSecretWithIdentity(serverIdentity, clientIdentity, "identity:generated")
 
   const sharedSecretAlt = computeSecretWithIdentity(clientIdentity, serverIdentity, "identity:generated")
-
-  // Create signed documents
-  const serverDocument = createDocument(serverIdentity, clientIdentity, "identity:generated")
-  const clientDocument = createDocument(clientIdentity, serverIdentity, "identity:generated")
 
   // Encrypt and decrypt messages
   const message = "Hello, secure world!"
@@ -41,21 +43,20 @@ async function generateCryptographicData() {
         publicKey: clientIdentity.publicKey,
       },
     },
-    documents: {
-      server: serverDocument,
-      client: clientDocument,
-    },
     messages: {
       encrypted: encryptedMessage,
+      sharedSecretFingerprintServer: fingerprint(sharedSecret.value),
+      sharedSecretFingerprintClient: fingerprint(sharedSecretAlt.value),
       decryptedServer,
       decryptedClient,
     },
   }
 }
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ privateKey?: string }> }) {
   // Generate the initial cryptographic data
-  const initialData = await generateCryptographicData()
+  const { privateKey } = await searchParams
+  const initialData = await generateCryptographicData(privateKey)
 
   return (
     <main className="min-h-screen bg-background">

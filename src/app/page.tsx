@@ -94,7 +94,7 @@ export default async function CryptoOperations({
 					<CardContent>
 						<div className="space-y-4">
 							<div>
-								<Label htmlFor="verifierPublicKey">Public Key:</Label>
+								<Label htmlFor="verifierPublicKey">Signer public Key:</Label>
 								<Input
 									id="verifierPublicKey"
 									value={data.pub}
@@ -112,7 +112,14 @@ export default async function CryptoOperations({
 								/>
 							</div>
 							<div>
-								<Label htmlFor="signature">Signature:</Label>
+								<span className="flex items-center justify-between pb-2">
+									<Label htmlFor="signature">Signature:</Label>
+									{data.verified ? (
+										<CheckCircleIcon className="text-green-500 h-6 w-6" />
+									) : (
+										<XCircleIcon className="text-red-500 h-6 w-6" />
+									)}
+								</span>
 								<Textarea
 									id="signature"
 									value={data.sig}
@@ -123,52 +130,21 @@ export default async function CryptoOperations({
 						</div>
 					</CardContent>
 				</Card>
-
-				<Card />
-
-				<Card>
-					<CardHeader>
-						<CardTitle>Outcome</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="mt-4 flex items-center">
-							<span className="mr-2">Verification Result:</span>
-							{data.verified ? (
-								<CheckCircleIcon className="text-green-500 h-6 w-6" />
-							) : (
-								<XCircleIcon className="text-red-500 h-6 w-6" />
-							)}
-						</div>
-					</CardContent>
-				</Card>
 			</div>
 
-			<Card className="w-full max-w-4xl">
+			{searchParams.privateKey ? <Card className="w-full max-w-4xl">
 				<CardHeader>
-					<CardTitle>Data Flow</CardTitle>
+					<CardTitle>Hash Key Derivation</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<div className="flex flex-col md:flex-row justify-around items-center space-y-4 md:space-y-0 md:space-x-4">
-						<div className="text-center w-1/3">
-							<h3 className="text-lg font-semibold">Signer</h3>
-							<p>Owns Private Key</p>
-							<p>Generates Signatures</p>
-						</div>
-						<ArrowRightIcon className="h-8 w-8 text-primary" />
-						<div className="text-center w-1/3">
-							<h3 className="text-lg font-semibold">Verifier</h3>
-							<p>Knows public Key</p>
-							<p>Verifies Signature</p>
-						</div>
-					</div>
-				</CardContent>
-				<CardFooter>
-					<p className="text-center mx-auto">
-						(Message must be passed along with the signature or known ahead of
-						time)
+					<p>
+						Derive a shared secret between the server and this private key:
+						<a className="ml-1 underline underline-offset-2" href={`/hkdf?privateKey=${searchParams.privateKey}`}>
+							HKDF
+						</a>
 					</p>
-				</CardFooter>
-			</Card>
+				</CardContent>
+			</Card> : null}
 		</div>
 	);
 }
