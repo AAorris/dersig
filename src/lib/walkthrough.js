@@ -5,24 +5,26 @@ const {
   verifySignature
 } = require('./dersig'); // Assume this is the file where the library functions are defined
 
-const pattern = /[a-zA-Z0-9]{43}/;
+const pattern = /^[mM][cC][a-zA-Z0-9]+[=]+$/;
 
 function walkthrough(defaultMessage, defaultPrivateKey) {
-  const deadline = Date.now() + 1000;
+  const deadline = Date.now() + 3000;
 	// try a few times to get a key that matches [fF][a-zA-Z0-9]+
 	let privateKeyBase64 = defaultPrivateKey ?? generateBase64PrivateKey();
-  while (!pattern.test(privateKeyBase64) && Date.now() < deadline && !defaultPrivateKey) {
+  let publicKeyBase64 = deriveBase64PublicKey(privateKeyBase64);
+  while (!pattern.test(publicKeyBase64) && Date.now() < deadline && !defaultPrivateKey) {
 		privateKeyBase64 = generateBase64PrivateKey();
+    publicKeyBase64 = deriveBase64PublicKey(privateKeyBase64);
 	}
 
   console.log("Private Key (Base64):", privateKeyBase64);
 
   // Derive base64-encoded public key from the private key
-  const publicKeyBase64 = deriveBase64PublicKey(privateKeyBase64);
+  // const publicKeyBase64 = deriveBase64PublicKey(privateKeyBase64);
   console.log("Public Key (Base64):", publicKeyBase64);
 
   // The message to sign
-  const message = defaultMessage ?? "hello world";
+  const message = defaultMessage ?? process.env.SIGN_MESSAGE ?? "hello world";
 
   // Sign the message using the base64-encoded private key
   const signatureBase64 = signMessage(privateKeyBase64, message);
