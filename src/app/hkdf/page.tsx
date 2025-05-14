@@ -1,6 +1,6 @@
 import HKDFVisualization from "./component"
 import { fingerprint, createIdentity, derivePublicKey } from "@/lib/dersig"
-import { computeSecretWithIdentity, encrypt, decrypt } from "@/lib/xsig"
+import { computeSecretWithIdentity, encrypt, decrypt } from "@/lib/encryption"
 
 // Server-side function to generate cryptographic data
 async function generateCryptographicData(privateKey?: string) {

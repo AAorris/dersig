@@ -1,4 +1,4 @@
-import { computeSecretWithIdentity } from "@/lib/xsig";
+import { computeSecretWithIdentity } from "@/lib/encryption";
 import { signMessage, createIdentity } from "@/lib/dersig";
 import type { Identity, PrivateKeyPair, SharedSecret } from "@/lib/types";
 
