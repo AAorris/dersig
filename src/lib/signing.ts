@@ -4,7 +4,6 @@ import {
 	createPublicKey,
 	generateKeyPairSync,
 } from "node:crypto";
-import type { PrivateIdentity, PublicIdentity } from "./types";
 import { encode, decode, decodeArray } from "./buffer-encoding";
 
 /** From node:crypto generateKeyPairSync("ed25519") */
@@ -15,7 +14,7 @@ type Ed25519KeyPair = ReturnType<typeof generateKeyPairSync>;
  * The scheme used will be stripping the headers and encoding as base64url strings.
  * You can export the key pair back out for external use with `exportSigningKeyPair`.
  */
-export function createSigningKeyPair(): PrivateIdentity {
+export function createSigningKeyPair() {
 	return importSigningKeyPair(generateKeyPairSync("ed25519"));
 }
 
@@ -28,7 +27,10 @@ export function deriveSigningPublicKey(privateKey: string): string {
 }
 
 /** @param pair a key pair from `crypto.generateKeyPairSync("ed25519")` */
-export function importSigningKeyPair(pair: Ed25519KeyPair): PrivateIdentity {
+export function importSigningKeyPair(pair: Ed25519KeyPair): {
+	privateKey: string;
+	publicKey: string;
+} {
 	const { privateKey, publicKey } = pair;
 	const privateKeyRaw = privateKey
 		.export({ format: "der", type: "pkcs8" })
@@ -75,7 +77,10 @@ export function exportPublicKey(
 }
 
 /** @returns an equivalent key pair to `crypto.generateKeyPairSync("ed25519")` */
-export function exportSigningKeyPair(pair: PrivateIdentity): Ed25519KeyPair {
+export function exportSigningKeyPair(pair: {
+	privateKey: string;
+	publicKey: string;
+}): Ed25519KeyPair {
 	const { privateKey, publicKey } = pair;
 	return {
 		privateKey: exportPrivateKey(privateKey),

@@ -7,7 +7,6 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "next lint",
-		"walkthrough": "tsc ./src/lib/dersig.ts && node ./src/lib/walkthrough.js",
 		"test": "jest"
 	},
 	"dependencies": {

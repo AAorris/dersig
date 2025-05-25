@@ -83,3 +83,4 @@ const Line = memo(({ v }: { v: NonNullable<ReturnType<typeof generatePair>> }) =
     </>
   )
 })
+Line.displayName = "Line"
