@@ -2,11 +2,11 @@ import * as crypto from "node:crypto";
 import { decode, fingerprint } from "@/lib/buffer-encoding";
 import {
 	exportSigningKeyPair,
-	generateSigningKeyPair,
+	createSigningKeyPair,
 	importSigningKeyPair,
 } from "./src/lib/signing";
 
-const { privateKey, publicKey } = generateSigningKeyPair();
+const { privateKey, publicKey } = createSigningKeyPair();
 
 console.log(privateKey);
 console.log(publicKey);

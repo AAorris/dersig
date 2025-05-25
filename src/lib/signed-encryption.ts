@@ -1,19 +1,10 @@
-import * as crypto from "node:crypto";
-import { x25519 } from "@noble/curves/ed25519";
-import { encode, decode, decodeArray } from "./buffer-encoding";
 import {
-	generateSigningKeyPair,
-	derivePublicKey,
-	signMessage,
-	verifyMessage,
-	deriveSigningPublicKey,
-} from "./signing";
-import { getSharedSecret } from "./shared-secret";
-import {
-	encryptUtf8 as encrypt,
-	decryptUtf8 as decrypt,
 	createEncryptionKeyPair,
+	decryptUtf8 as decrypt,
+	encryptUtf8 as encrypt,
 } from "./encryption";
+import { getSharedSecret } from "./shared-secret";
+import { signMessage, verifyMessage } from "./signing";
 
 export function encryptAndSign({
 	message,
@@ -67,7 +58,7 @@ interface EncryptedMessage {
 	signature: string; // signature of the ciphertext
 }
 
-function parseEciesMessage(message: string): EncryptedMessage {
+export function parseEciesMessage(message: string): EncryptedMessage {
 	const [ephemeralPublicKey, ciphertext, signature] = message.split("\n");
 	const test = stringifyEciesMessage({
 		ephemeralPublicKey,

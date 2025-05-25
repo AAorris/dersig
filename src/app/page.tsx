@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { CheckCircleIcon, XCircleIcon, ArrowRightIcon } from "lucide-react";
-import walkthrough from "@/lib/walkthrough";
+// import walkthrough from "@/lib/walkthrough";
 
 export default async function CryptoOperations({
 	searchParams,

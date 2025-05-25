@@ -8,13 +8,7 @@ import {
 	edwardsToMontgomeryPub,
 	edwardsToMontgomeryPriv,
 } from "@noble/curves/ed25519";
-import {
-	decode,
-	decodeArray,
-	encode,
-	encodeArray,
-	encoding,
-} from "./buffer-encoding";
+import { decode, decodeArray, encode, encoding } from "./buffer-encoding";
 
 export const algorithm = "chacha20-poly1305";
 
@@ -111,7 +105,7 @@ function stringifyEncryptedMessage(result: {
 	return `${result.iv}${result.ciphertext}${result.authTag}`;
 }
 
-function parseEncryptedMessage(message: string) {
+export function parseEncryptedMessage(message: string) {
 	const iv = message.slice(0, 16);
 	const ciphertext = message.slice(16, -16);
 	const authTag = message.slice(-16);

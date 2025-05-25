@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto";
 import { fingerprint, decode } from "./buffer-encoding";
 import {
-	generateSigningKeyPair,
+	createSigningKeyPair,
 	derivePublicKey,
 	exportSigningKeyPair,
 	importSigningKeyPair,
@@ -72,8 +72,8 @@ describe("fingerprint", () => {
 		);
 	});
 
-	test("generateSigningKeyPair should return a valid key pair", () => {
-		const keyPair = generateSigningKeyPair();
+	test("createSigningKeyPair should return a valid key pair", () => {
+		const keyPair = createSigningKeyPair();
 		expect(keyPair).toHaveProperty("privateKey");
 		expect(keyPair).toHaveProperty("publicKey");
 		expect(typeof keyPair.privateKey).toBe("string");
@@ -81,7 +81,7 @@ describe("fingerprint", () => {
 	});
 
 	test("derivePublicKey should derive the correct public key from a private key", () => {
-		const { privateKey, publicKey } = generateSigningKeyPair();
+		const { privateKey, publicKey } = createSigningKeyPair();
 		const derivedPublicKey = derivePublicKey(privateKey);
 		expect(derivedPublicKey).toBe(publicKey);
 	});

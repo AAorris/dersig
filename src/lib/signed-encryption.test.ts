@@ -3,11 +3,11 @@ import {
 	createEncryptionKeyPair,
 	getEncryptionKeysFromSigningKeys,
 } from "./encryption";
-import { generateSigningKeyPair } from "./signing";
+import { createSigningKeyPair } from "./signing";
 
 describe("encryptAndSign and verifyAndDecrypt", () => {
 	test("should encrypt, sign, and then verify and decrypt the message correctly", () => {
-		const senderIdentity = generateSigningKeyPair();
+		const senderIdentity = createSigningKeyPair();
 
 		const recipientEncryptionKeys = createEncryptionKeyPair();
 
@@ -32,9 +32,9 @@ describe("encryptAndSign and verifyAndDecrypt", () => {
 	});
 
 	test("should sign/verify with encryption keys inferred from recipient signing keys", () => {
-		const senderIdentity = generateSigningKeyPair();
+		const senderIdentity = createSigningKeyPair();
 
-		const recipientIdentity = generateSigningKeyPair();
+		const recipientIdentity = createSigningKeyPair();
 		const recipientEncryptionKeys =
 			getEncryptionKeysFromSigningKeys(recipientIdentity);
 

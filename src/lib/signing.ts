@@ -15,7 +15,7 @@ type Ed25519KeyPair = ReturnType<typeof generateKeyPairSync>;
  * The scheme used will be stripping the headers and encoding as base64url strings.
  * You can export the key pair back out for external use with `exportSigningKeyPair`.
  */
-export function generateSigningKeyPair(): PrivateIdentity {
+export function createSigningKeyPair(): PrivateIdentity {
 	return importSigningKeyPair(generateKeyPairSync("ed25519"));
 }
 

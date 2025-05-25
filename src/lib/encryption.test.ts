@@ -7,7 +7,7 @@ import {
 	x25519PrivatePrefix,
 } from "./encryption";
 import { getSharedSecret } from "./shared-secret";
-import { generateSigningKeyPair } from "./signing";
+import { createSigningKeyPair } from "./signing";
 
 describe("Encryption Module", () => {
 	it("should encrypt and decrypt using an encryption key pair", () => {
@@ -54,7 +54,7 @@ describe("Encryption Module", () => {
 	});
 
 	it("should encrypt and decrypt using a shared secret with an ephemeral key pair", () => {
-		const senderKeys = generateSigningKeyPair();
+		const senderKeys = createSigningKeyPair();
 		void senderKeys; // would be used for signing in signed-encryption
 		const receiverKeys = createEncryptionKeyPair();
 		const ephemeralKeys = createEncryptionKeyPair();
