@@ -3,25 +3,6 @@ import csv
 
 scrabble_words = set()
 words = {}
-banned_words = {
-    "cock",
-    "dick",
-    "fuck",
-    "shit",
-    "ass",
-    "pussy",
-    "dildo",
-    "homo",
-    "sex",
-    "cunt",
-    "fag",
-    "nigga",
-    "nig",
-    "nigger",
-    "nigga",
-    "nig",
-    "nigger",
-}
 
 
 def load_scrabble_words():
@@ -39,8 +20,6 @@ def generate_dictionary():
         reader = csv.reader(f)
         next(reader)  # Skip header row
         for row in reader:
-            if row[0] in banned_words:
-                continue
             value = int(row[1])
             if (
                 value < 501651226

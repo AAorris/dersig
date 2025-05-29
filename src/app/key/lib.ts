@@ -18,7 +18,7 @@ export function generatePair() {
 	// }
 	// ...
 	// const matches = getLongestMatchingSubstrings(publicKey);
-	if (matches.length === 0) return null;
+	// if (matches.length === 0) return null;
 	return {
 		publicKey,
 		privateKey,
@@ -30,40 +30,59 @@ export function generatePair() {
 
 export function streamKeys(timeout = 10_000) {
 	const streamableValue = createStreamableValue();
-	let best: ReturnType<typeof generatePair> | null = null;
 	let isRunning = true;
+	let isCancelled = false;
+	let batch: ReturnType<typeof generatePair>[] = [];
+	let lowWatermark = 0;
+	let seen = 0;
+	const deadline = Date.now() + timeout;
 
-	const bestPromise = new Promise((resolve, reject) => {
+	void new Promise((resolve, reject) => {
 		const compute = () => {
 			if (!isRunning) return;
+			if (isCancelled) throw new Error("Cancelled");
 
+			const ts = Date.now();
 			const gen = generatePair();
-			if (!gen) {
-				// Schedule next iteration with small delay for streaming
+			if (!gen && ts < deadline) {
 				setTimeout(compute, 1);
 				return;
 			}
-
-			if (gen.score > 0) {
-				streamableValue.update(gen);
-				if (gen.score > (best?.score ?? 0)) {
-					best = gen;
-				}
+			seen += 1;
+			if (gen.score > lowWatermark) {
+				batch.push(gen);
+				lowWatermark = lowWatermark + (gen.score - lowWatermark) * 0.01;
+			}
+			if (seen % 1000 === 0) {
+				streamableValue.update(batch);
+				batch = [];
+				seen = 0;
 			}
 
-			// Schedule next iteration with small delay for streaming
+			if (ts > deadline) {
+				streamableValue.update(batch);
+				batch = [];
+				resolve(undefined);
+			}
+
 			setTimeout(compute, 1);
 		};
 
-		// Start the loop
+		// start
 		compute();
-
-		setTimeout(() => {
+	})
+		.finally(() => {
 			isRunning = false;
 			streamableValue.done();
-			if (best) resolve(best);
-			else reject(new Error("No valid key pair found"));
-		}, timeout);
-	});
-	return { streamableValue, bestPromise };
+		})
+		.catch((e) => {
+			console.error(e);
+		});
+	return {
+		streamableValue,
+		abort: () => {
+			isCancelled = true;
+			streamableValue.done();
+		},
+	};
 }

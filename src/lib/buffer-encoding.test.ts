@@ -22,7 +22,7 @@ describe("buffer-encoding", () => {
 	test("fingerprint should return correct fingerprint for buffer", () => {
 		const buffer = Buffer.from("test buffer");
 		const fp = fingerprint(buffer);
-		expect(fp).toMatchInlineSnapshot(`"4b_55wKzCks"`);
+		expect(fp).toMatchInlineSnapshot(`"RObBg7O0uFg"`);
 	});
 });
 

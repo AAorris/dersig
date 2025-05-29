@@ -1,25 +1,42 @@
 import { Trie, TrieNode } from "@datastructures-js/trie";
 // import { data } from "./dictionary";
 import { freq } from "./unigram_freq";
+import words from "./words";
 
 const trie = new Trie();
 let loaded = false;
 
-function load() {
+export function load() {
 	if (loaded) return;
 	for (const word of Object.keys(freq)) {
 		if (word.length > 2 && word.length < 8) {
 			trie.insert(word);
 		}
 	}
+	let word = "";
+	for (let i = 0; i < words.length; i++) {
+		const char = words[i];
+		if (char === "\n") {
+			if (word) {
+				trie.insert(word);
+				word = "";
+			}
+		} else {
+			word += char;
+		}
+	}
+	if (word) {
+		trie.insert(word);
+	}
 	loaded = true;
+	return trie;
 }
 
 const maxFreq = 501651226;
+const maxFreqSquared = maxFreq * maxFreq;
 
 function getFreqScore(length: number, freq: number) {
-	const factor = length - 2;
-	const result = (freq / maxFreq) * 256 * factor;
+	const result = ((freq * freq) / maxFreqSquared) * 1024;
 	return result;
 }
 
@@ -87,22 +104,33 @@ export function getMatchingStrings(rawWords: string[]) {
 				adjacentToSeparatorWords.add(word);
 			}
 
-			// Add freq scores
-			score += freq[word] ? getFreqScore(word.length, freq[word]) : 0;
+			score += getFreqScore(word.length, freq[word] ?? 1_000_000);
 		}
 	}
 
 	const matchesArray = Array.from(matches);
-	const separatorBonus = adjacentToSeparatorWords.size * 32; // Bonus points for separator-adjacent words or first/last position words
+	const matchCountBonus = {
+		1: 0,
+		2: 1000,
+		3: 2000,
+		4: 4000,
+		5: 8000,
+	}[matchesArray.length];
+	const maxWordLengthBonus = {
+		3: 0,
+		4: 2000,
+		5: 4000,
+		6: 8000,
+		7: 16000,
+	}[Math.max(...matchesArray.map((word) => word.length))];
 	const scaledScore =
 		score +
-		matchesArray.length * 64 +
 		rawWordsScore(rawWords.length) +
-		separatorBonus;
-	const bonusFactor = matchesArray.some((x) => x.length > 3) ? 10 : 1;
+		(matchCountBonus ?? 0) +
+		(maxWordLengthBonus ?? 0);
 	return {
 		matches: matchesArray,
-		score: scaledScore * bonusFactor,
+		score: scaledScore,
 	};
 }
 
@@ -136,4 +164,164 @@ export function getLongestMatchingSubstrings(rawWord: string) {
 		}
 	}
 	return Array.from(matches).sort((l, r) => r.length - l.length);
+}
+
+interface WordCandidate {
+	completedWords: string[];
+	currentPartial: string;
+	score: number;
+	position: number;
+}
+
+export function getOptimalWordSequence(input: string) {
+	load();
+	const cleanInput = input.toLowerCase().replace(/[^a-z]/g, "");
+
+	// Start with one candidate with empty state
+	let candidates: WordCandidate[] = [
+		{
+			completedWords: [],
+			currentPartial: "",
+			score: 0,
+			position: 0,
+		},
+	];
+
+	// Process each character
+	for (let charIndex = 0; charIndex < cleanInput.length; charIndex++) {
+		const char = cleanInput[charIndex];
+		const newCandidates: WordCandidate[] = [];
+
+		for (const candidate of candidates) {
+			const newPartial = candidate.currentPartial + char;
+
+			// Check if this partial word exists in trie
+			const trieNode = trie.find(newPartial);
+			const hasChildren = trieNode && trieNode.childrenCount() > 0;
+			const isCompleteWord = trieNode?.isEndOfWord();
+
+			// If we can continue building this word
+			if (hasChildren || isCompleteWord) {
+				// Option 1: Continue building the current word
+				if (hasChildren) {
+					newCandidates.push({
+						...candidate,
+						currentPartial: newPartial,
+						position: charIndex + 1,
+					});
+				}
+
+				// Option 2: Complete the current word and start a new one (if it's a valid word)
+				if (isCompleteWord && newPartial.length >= 3) {
+					const wordScore = getFreqScore(
+						newPartial.length,
+						freq[newPartial] ?? 1_000_000,
+					);
+					newCandidates.push({
+						completedWords: [...candidate.completedWords, newPartial],
+						currentPartial: "",
+						score: candidate.score + wordScore,
+						position: charIndex + 1,
+					});
+				}
+			}
+
+			// Option 3: If current partial is a valid word, complete it and start fresh
+			if (candidate.currentPartial.length >= 3) {
+				const currentNode = trie.find(candidate.currentPartial);
+				if (currentNode?.isEndOfWord()) {
+					const wordScore = getFreqScore(
+						candidate.currentPartial.length,
+						freq[candidate.currentPartial] ?? 1_000_000,
+					);
+					newCandidates.push({
+						completedWords: [
+							...candidate.completedWords,
+							candidate.currentPartial,
+						],
+						currentPartial: char,
+						score: candidate.score + wordScore,
+						position: charIndex + 1,
+					});
+				}
+			}
+
+			// Option 4: Skip this character and continue with current partial (for handling non-word chars)
+			if (candidate.currentPartial.length > 0) {
+				newCandidates.push({
+					...candidate,
+					position: charIndex + 1,
+				});
+			}
+		}
+
+		// Prune candidates to keep only the best ones (prevent exponential explosion)
+		candidates = newCandidates.sort((a, b) => b.score - a.score).slice(0, 50); // Keep top 50 candidates
+
+		// If no candidates remain, start fresh
+		if (candidates.length === 0) {
+			candidates = [
+				{
+					completedWords: [],
+					currentPartial: char,
+					score: 0,
+					position: charIndex + 1,
+				},
+			];
+		}
+	}
+
+	// Finalize candidates by completing any remaining partial words
+	const finalCandidates = candidates.map((candidate) => {
+		let finalScore = candidate.score;
+		const finalWords = [...candidate.completedWords];
+
+		// Try to complete the current partial word
+		if (candidate.currentPartial.length >= 3) {
+			const node = trie.find(candidate.currentPartial);
+			if (node?.isEndOfWord()) {
+				const wordScore = getFreqScore(
+					candidate.currentPartial.length,
+					freq[candidate.currentPartial] ?? 1_000_000,
+				);
+				finalScore += wordScore;
+				console.log(candidate.currentPartial, wordScore);
+				finalWords.push(candidate.currentPartial);
+			}
+		}
+
+		// Apply bonuses similar to existing scoring system
+		const matchCountBonus =
+			{
+				1: 0,
+				2: 1000,
+				3: 2000,
+				4: 4000,
+				5: 8000,
+			}[finalWords.length] ?? 10000;
+
+		const maxWordLengthBonus =
+			finalWords.length > 0
+				? ({
+						3: 0,
+						4: 2000,
+						5: 4000,
+						6: 8000,
+						7: 16000,
+					}[Math.max(...finalWords.map((word) => word.length))] ?? 20000)
+				: 0;
+
+		const partsBonus = rawWordsScore(finalWords.length);
+
+		return {
+			words: finalWords,
+			score: finalScore + matchCountBonus + maxWordLengthBonus + partsBonus,
+			coverage: finalWords.join("").length / cleanInput.length,
+		};
+	});
+
+	// Sort by score and return the best options
+	return finalCandidates
+		.filter((c) => c.words.length > 0)
+		.sort((a, b) => b.score - a.score)[0]; //.slice(0, 10); // Return top 10 candidates
 }

@@ -44,7 +44,7 @@ export function GET(request: NextRequest) {
 		}
 	}
 	if (!pair) return new Response("Failed to generate key pair");
-	let responseLines = valid
+	const responseLines = valid
 		.sort((l, r) => {
 			return (r?.score ?? 0) - (l?.score ?? 0);
 		})

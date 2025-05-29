@@ -68,7 +68,7 @@ describe("fingerprint", () => {
 			publicKey: "PNUiVZjMUD0UTOF-PZQUkzGGH5sJfPi611N23k0D4AE",
 		};
 		expect(fingerprint(decode(identity.privateKey))).toMatchInlineSnapshot(
-			`"ay8cGb7_zg"`,
+			`"V5CcQJm789I"`,
 		);
 	});
 

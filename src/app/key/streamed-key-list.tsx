@@ -5,81 +5,140 @@ import { memo, useEffect, useState } from 'react';
 
 export function StreamedKeyList(props: {
   size: number
-  streamableValue: StreamableValue<ReturnType<typeof generatePair>>
+  streamableValue: StreamableValue<ReturnType<typeof generatePair>[]>
 }) {
   // const values = useRef<ReturnType<typeof generatePair>[]>([]);
   const [bestSet, setBestSet] = useState<ReturnType<typeof generatePair>[]>([]);
+  const [totalPairsSeen, setTotalPairsSeen] = useState<number>(0);
   const [error, setError] = useState<Error | null>(null);
   useEffect(() => {
     let done = false;
     (async () => {
-      for await (const pair of readStreamableValue(props.streamableValue)) {
-        if (!pair) continue;
+      for await (const pairs of readStreamableValue(props.streamableValue)) {
+        if (!pairs) continue;
         if (done) break;
+
+        // Update the total count of pairs seen
+        setTotalPairsSeen(prev => prev + pairs.filter(p => p !== null).length);
+
         // values.current.push(pair)
         setBestSet((prev) => {
-          // Find the correct position to insert the new pair
+          // Filter out null values and sort the batch by score (highest first)
+          const sortedBatch = pairs
+            .filter((p): p is NonNullable<typeof p> => p !== null)
+            .sort((a, b) => b.score - a.score);
+
+          if (sortedBatch.length === 0) return prev;
+
+          // If we have less than 2 items in prev, just merge and sort
           if (prev.length < 2) {
-            // If we have less than 2 pairs, just add and sort
-            const newSet = [pair, ...prev].filter((p): p is NonNullable<typeof p> => p !== null).sort((a, b) => b.score - a.score);
+            const newSet = [...sortedBatch, ...prev]
+              .filter((p): p is NonNullable<typeof p> => p !== null)
+              .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0));
             return newSet.slice(0, props.size);
           }
 
-          const lastScore = prev[prev.length - 1]?.score ?? 0;
+          // Ensure prev is sorted (it should be, but just in case)
+          const sortedPrev = [...prev]
+            .filter((p): p is NonNullable<typeof p> => p !== null)
+            .sort((a, b) => b.score - a.score);
 
-          // If the new pair's score is between first and last, or better than first
-          if (pair.score >= lastScore) {
-            // Find the correct insertion point
-            let insertIndex = prev.length;
-            for (let i = 0; i < prev.length; i++) {
-              if (pair.score > (prev[i]?.score ?? 0)) {
-                insertIndex = i;
-                break;
+          // Merge the sorted batch with the sorted previous set
+          const merged: NonNullable<ReturnType<typeof generatePair>>[] = [];
+          let batchIndex = 0;
+          let prevIndex = 0;
+
+          // Merge while maintaining order
+          while (merged.length < props.size && (batchIndex < sortedBatch.length || prevIndex < sortedPrev.length)) {
+            const batchItem = sortedBatch[batchIndex];
+            const prevItem = sortedPrev[prevIndex];
+
+            if (batchIndex >= sortedBatch.length) {
+              // No more batch items, take from prev
+              if (prevItem) {
+                merged.push(prevItem);
               }
+              prevIndex++;
+            } else if (prevIndex >= sortedPrev.length) {
+              // No more prev items, take from batch
+              merged.push(batchItem);
+              batchIndex++;
+            } else if (batchItem.score > prevItem.score) {
+              // Batch item has higher score
+              merged.push(batchItem);
+              batchIndex++;
+            } else {
+              // Prev item has higher or equal score
+              merged.push(prevItem);
+              prevIndex++;
             }
-
-            // Insert at the correct position
-            const newSet = [...prev];
-            newSet.splice(insertIndex, 0, pair);
-
-            // Keep only the top N
-            return newSet.slice(0, props.size);
           }
 
-          // If score is worse than the last pair and we're at capacity, ignore it
-          if (prev.length >= props.size) {
-            return prev;
+          // If we couldn't fit all batch items and we're at capacity,
+          // replace the last item with the first unprocessed batch item
+          if (merged.length === props.size && batchIndex < sortedBatch.length) {
+            const remainingBatchItem = sortedBatch[batchIndex];
+            const lastMergedItem = merged[merged.length - 1];
+
+            if (remainingBatchItem && lastMergedItem && remainingBatchItem.score > lastMergedItem.score) {
+              merged[merged.length - 1] = remainingBatchItem;
+            }
           }
 
-          // Otherwise, add to the end
-          return [...prev, pair].slice(0, props.size);
+          return merged;
         })
       }
     })().catch(e => setError(e))
     return () => {
       // values.current = [];
       setBestSet([]);
+      setTotalPairsSeen(0);
       done = true;
     }
   }, [props.streamableValue, props.size]);
 
-  return <div className="font-mono grid grid-cols-3 gap-2 w-full justify-between">{bestSet.filter((v): v is NonNullable<typeof v> => v !== null).map((v) => <Line key={v.publicKey} v={v} />)}</div>;
+  return (
+    <div className="w-full">
+      <div className="p-2 text-sm text-gray-400 font-mono">
+        Pairs processed: {totalPairsSeen.toLocaleString()}
+      </div>
+      <div className="p-2 font-mono grid grid-cols-3 gap-2 w-full justify-between" style={{
+        gridTemplateColumns: "300px 1fr 43ch"
+      }}>{bestSet.filter((v): v is NonNullable<typeof v> => v !== null).map((v) => <Line key={v.publicKey} v={v} />)}</div>
+    </div>
+  );
+}
+
+/**
+ * Normal – White
+ * Magic – Blue
+ * Rare – Yellow
+ * Legendary – Orange
+ * Unique – Gold
+ */
+const colorMap = {
+  "normal": { strong: "text-gray-400", dim: "text-gray-500" },
+  "magic": { strong: "text-blue-400", dim: "text-blue-600" },
+  "rare": { strong: "text-yellow-400", dim: "text-yellow-600" },
+  "legendary": { strong: "text-orange-400", dim: "text-orange-600" },
+  "unique": { strong: "text-gold-400", dim: "text-gold-600" },
 }
 
 const Line = memo(({ v }: { v: NonNullable<ReturnType<typeof generatePair>> }) => {
+  const color = colorMap[v.score > 4096 ? "legendary" : v.score > 2048 ? "rare" : v.score > 1024 ? "magic" : "normal"];
   return (
     <>
-      <div className="flex gap-2">
-        {v.matches.map(x => <div key={x}>{x}</div>)}
-      </div>
-      <div>{
+      <span className={color.strong}>
+        {`${v.matches.join(' ')} ${Number(v.score).toFixed(0)}`}
+      </span>
+      <span className={`text-right cursor-pointer ${color.dim}`}>{
         v?.prettyPublicKey.map(x => {
           if (v.matches.includes(x.toLowerCase())) {
-            return <span className="text-orange-500 mx-[4px]" key={x}>{x}</span>
+            return <span className={`${color.strong}`} key={x}>{x}</span>
           }
-          return <span className="text-gray-500" key={x}>{x}</span>;
-        })}</div>
-      <div>{v?.privateKey}</div>
+          return <span key={x}>{x}</span>;
+        })}</span>
+      <span className={`text-right ${color.dim}`}>{v?.privateKey}</span>
     </>
   )
 })

@@ -19,7 +19,6 @@
 		"ai": "^4.3.16",
 		"class-variance-authority": "^0.7.0",
 		"clsx": "^2.1.1",
-		"js-xxhash": "^4.0.0",
 		"lucide-react": "^0.436.0",
 		"next": "14.2.7",
 		"react": "^18",
