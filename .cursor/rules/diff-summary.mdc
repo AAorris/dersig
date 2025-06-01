@@ -35,3 +35,31 @@ Refactored StreamedKeyList components to use shared utilities
   - Reduced component from 158 lines to 46 lines
 
 The refactoring eliminates ~200 lines of duplicate code while maintaining the same functionality and preserving the subtle differences between encryption and signing key display patterns.
+
+Added signed-note page with cryptographic message signing and encryption
+
+• Created `src/app/signed-note/page.tsx` - Server component for signed note functionality
+  - Generates Ed25519 signing keys and X25519 encryption keys
+  - Implements `processSignedNote` server action for cryptographic operations
+  - Uses ECIES (Elliptic Curve Integrated Encryption Scheme) for message encryption
+  - Displays generated key pairs in read-only form inputs
+  - Includes informational "How it Works" section
+
+• Created `src/components/SignedNoteForm.tsx` - Client component for form handling
+  - Manages form submission state and loading indicators
+  - Handles POST-based form submissions with FormData (no URL parameter limits)
+  - Displays validation results with success/error badges
+  - Shows original vs decrypted message comparison
+  - Renders complete ECIES message format with parsed components
+  - Dynamic textarea sizing based on content length
+  - Proper error handling without page redirects
+
+Key features implemented:
+• Ed25519 digital signature generation and verification
+• X25519 encryption using ephemeral keys
+• ECIES message format with ephemeral public key, ciphertext, and signature
+• Automatic message validation through decrypt-and-compare
+• Component parsing showing IV, auth tag, raw ciphertext, and signature
+• Server/client component separation following Next.js App Router patterns
+• POST-based form submission supporting large messages
+• Real-time form processing with loading states

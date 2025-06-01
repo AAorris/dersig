@@ -224,7 +224,7 @@ export default function SignedNotePage({
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>1. <strong>Key Generation:</strong> Ed25519 keys for signing and X25519 keys for encryption are generated.</p>
             <p>2. <strong>Encryption:</strong> The message is encrypted using ECIES (Elliptic Curve Integrated Encryption Scheme).</p>
-            <p>3. <strong>Signing:</strong> The encrypted message is signed with the sender's private signing key.</p>
+            <p>3. <strong>Signing:</strong> The encrypted message is signed with the sender&apos;s private signing key.</p>
             <p>4. <strong>Verification:</strong> The signature is verified and the message is decrypted to validate the process.</p>
           </CardContent>
         </Card>
