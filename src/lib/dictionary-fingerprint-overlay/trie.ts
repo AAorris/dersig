@@ -285,7 +285,7 @@ export function getOptimalWordSequence(input: string) {
 					freq[candidate.currentPartial] ?? 1_000_000,
 				);
 				finalScore += wordScore;
-				console.log(candidate.currentPartial, wordScore);
+				// console.log(candidate.currentPartial, wordScore);
 				finalWords.push(candidate.currentPartial);
 			}
 		}

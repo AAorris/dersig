@@ -34,7 +34,7 @@ export function keyMatch(value: string) {
 		}
 		if (n > 2) {
 			const word = input.slice(i, n);
-			console.log(i, n, word);
+			// console.log(i, n, word);
 			matches.push({
 				word,
 				start: i,

@@ -133,3 +133,17 @@ export function verifyMessage({
 		new Uint8Array(decode(signature)),
 	);
 }
+
+export function signerFromString(signer: string): {
+	fingerprint: string;
+	privateKey: string;
+	publicKey: string;
+} {
+	const [fingerprint, keys] = signer.split("=");
+	const [publicKey, privateKey] = keys.split(",");
+	return {
+		fingerprint,
+		privateKey,
+		publicKey,
+	};
+}

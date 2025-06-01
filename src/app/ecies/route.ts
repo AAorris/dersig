@@ -38,9 +38,9 @@ export async function GET(request: NextRequest) {
 		receiverPrivateEncryptionKey: encryptionPrivateKey,
 		senderPublicSigningKey: publicKey,
 	});
-	const prettyPublicKey = formatPrettyPublicKey(publicKey).join("\n");
+	const prettyPublicKey = formatPrettyPublicKey(publicKey).join("");
 	const prettyEphemeralPublicKey =
-		formatPrettyPublicKey(ephemeralPublicKey).join("\n");
+		formatPrettyPublicKey(ephemeralPublicKey).join("");
 	const [_, ...secondLineOnwards] = encryptedMessage.split("\n");
 
 	return new Response(
