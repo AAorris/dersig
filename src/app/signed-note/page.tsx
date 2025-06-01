@@ -131,10 +131,10 @@ export default function SignedNotePage({
               <div>
                 <h4 className="font-medium mb-2">Why This Matters</h4>
                 <ul className="space-y-1 text-muted-foreground">
-                  <li>• Software updates (proving they're from the real company)</li>
+                  <li>• Software updates (proving they are from the real company)</li>
                   <li>• Legal documents (digital contracts)</li>
                   <li>• Cryptocurrency (proving you own your coins)</li>
-                  <li>• Email security (proving emails aren't spoofed)</li>
+                  <li>• Email security (proving emails are not spoofed)</li>
                 </ul>
               </div>
             </div>

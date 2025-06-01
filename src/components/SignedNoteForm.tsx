@@ -112,7 +112,7 @@ export function SignedNoteForm({
         <CardHeader>
           <CardTitle>Sign Your Message</CardTitle>
           <CardDescription>
-            Write anything you want to sign. Could be a note, a promise, or just "hello world".
+            Write anything you want to sign. Could be a note, a promise, or just &quot;hello world&quot;.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -201,7 +201,7 @@ export function SignedNoteForm({
                   className="mt-1 font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  This is what you'd share with others. They can verify it came from you.
+                  This is what you would share with others. They can verify it came from you.
                 </p>
               </div>
 
@@ -310,7 +310,7 @@ export function SignedNoteForm({
                   )}
 
                   <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                    <h4 className="font-medium text-orange-800 mb-2">What's happening?</h4>
+                    <h4 className="font-medium text-orange-800 mb-2">What is happening?</h4>
                     <p className="text-sm text-orange-700">
                       {editedVerification.isValid
                         ? "The signature is valid - no tampering detected. The message content matches what was originally signed."
