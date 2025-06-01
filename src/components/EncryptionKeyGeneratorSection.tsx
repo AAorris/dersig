@@ -21,11 +21,11 @@ export default function EncryptionKeyGeneratorSection() {
 
 function EncryptionKeyGeneratorContent() {
   const timeout = process.env.VERCEL_ENV ? 1_000 : 60_000;
-  const { streamableValue } = streamKeys(timeout, 'symmetric');
+  const { streamableValue } = streamKeys(timeout);
 
   return (
     <div className="relative">
-      <StreamedKeyList streamableValue={streamableValue.value} size={50} keyType="symmetric" />
+      <StreamedKeyList streamableValue={streamableValue.value} size={50} />
     </div>
   );
 }

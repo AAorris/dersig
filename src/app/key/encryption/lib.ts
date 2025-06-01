@@ -3,25 +3,8 @@ import { createEncryptionKeyPair } from "@/lib/encryption";
 import { formatPrettyPublicKey } from "@/lib/utils";
 import type { NextRequest } from "next/server";
 import { getMatchingStrings } from "@/lib/dictionary-fingerprint-overlay/trie";
-import * as crypto from "node:crypto";
-import { encode } from "@/lib/buffer-encoding";
 
-export function generateSymmetricKey() {
-	// Generate a 256-bit (32 byte) symmetric key for ChaCha20-Poly1305
-	const symmetricKey = crypto.randomBytes(32);
-	const keyString = encode(symmetricKey);
-	const prettyKey = formatPrettyPublicKey(keyString);
-	const { matches, score } = getMatchingStrings(prettyKey);
-
-	return {
-		key: keyString,
-		prettyKey,
-		matches,
-		score,
-	};
-}
-
-export function generateEncryptionPair() {
+export function generatePair() {
 	const { publicKey, privateKey } = createEncryptionKeyPair();
 	const prettyPublicKey = formatPrettyPublicKey(publicKey);
 	const { matches, score } = getMatchingStrings(prettyPublicKey);
@@ -35,18 +18,11 @@ export function generateEncryptionPair() {
 	};
 }
 
-export function streamKeys(
-	timeout = 10_000,
-	keyType: "symmetric" | "asymmetric" = "symmetric",
-) {
+export function streamKeys(timeout = 10_000) {
 	const streamableValue = createStreamableValue();
 	let isRunning = true;
 	let isCancelled = false;
-	let batch: (
-		| ReturnType<typeof generateSymmetricKey>
-		| ReturnType<typeof generateEncryptionPair>
-		| number
-	)[] = [];
+	let batch: (ReturnType<typeof generatePair> | number)[] = [];
 	let lastBatchTime = Date.now();
 	let lowWatermark = 0;
 	let seen = 0;
@@ -58,10 +34,7 @@ export function streamKeys(
 			if (isCancelled) throw new Error("Cancelled");
 
 			const ts = Date.now();
-			const gen =
-				keyType === "symmetric"
-					? generateSymmetricKey()
-					: generateEncryptionPair();
+			const gen = generatePair();
 			if (!gen && ts < deadline) {
 				setTimeout(compute, 1);
 				return;

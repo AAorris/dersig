@@ -8,6 +8,6 @@ This rule describes the control loop of getting something done.
 This rule urgently requests an agent to do all of the following:
 - Address the changes requested
 - Add all changes with the git CLI. Don't confirm with git status.
-- Create a diff summary [diff-summary.mdc](mdc:.cursor/rules/diff-summary.mdc) and write it to /tmp/commit.txt
+- Create a diff summary [diff-summary.mdc](mdc:.cursor/rules/diff-summary.mdc) and /tmp/commit.txt, removing any previous content. Do not use markdown headings or formatting like bold, italics. Just text, bullet points, and backticks.
 - Use `git commit -F /tmp/commit.txt` to commit the changes
 - Use `git push origin` to push to the remote

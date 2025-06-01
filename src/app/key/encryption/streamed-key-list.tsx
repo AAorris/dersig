@@ -1,47 +1,36 @@
 'use client';
 import { readStreamableValue, type StreamableValue } from 'ai/rsc';
-import type { generateSymmetricKey, generateEncryptionPair } from './lib';
+import type { generatePair } from './lib';
 import { memo, useCallback, useEffect, useState } from 'react';
-
-type KeyResult = ReturnType<typeof generateSymmetricKey> | ReturnType<typeof generateEncryptionPair>;
 
 export function StreamedKeyList(props: {
   size: number
-  streamableValue: StreamableValue<(KeyResult | number)[]>
-  keyType: 'symmetric' | 'asymmetric'
+  streamableValue: StreamableValue<(ReturnType<typeof generatePair> | number)[]>
 }) {
-  const [bestSet, setBestSet] = useState<KeyResult[]>([]);
+  const [bestSet, setBestSet] = useState<ReturnType<typeof generatePair>[]>([]);
   const [totalPairsSeen, setTotalPairsSeen] = useState<number>(0);
   const [error, setError] = useState<Error | null>(null);
 
-  const copyToClipboard = useCallback((keyResult: KeyResult) => {
-    if ('key' in keyResult) {
-      // Symmetric key
-      navigator.clipboard.writeText(
-        `${keyResult.matches.join('_').toUpperCase()}_${Number(keyResult.score).toFixed(0)}=${keyResult.key}`
-      );
-    } else {
-      // Asymmetric key pair
-      navigator.clipboard.writeText(
-        `${keyResult.matches.join('_').toUpperCase()}_${Number(keyResult.score).toFixed(0)}=${keyResult.prettyPublicKey.join('')},${keyResult.privateKey}`
-      );
-    }
+  const copyToClipboard = useCallback((pair: ReturnType<typeof generatePair>) => {
+    navigator.clipboard.writeText(
+      `${pair.matches.join('_').toUpperCase()}_${Number(pair.score).toFixed(0)}=${pair.prettyPublicKey.join('')},${pair.privateKey}`
+    );
   }, []);
 
   useEffect(() => {
     let done = false;
     (async () => {
-      for await (const keys of readStreamableValue(props.streamableValue)) {
-        if (!keys) continue;
+      for await (const pairs of readStreamableValue(props.streamableValue)) {
+        if (!pairs) continue;
         if (done) break;
 
-        // Update the total count of keys seen
-        setTotalPairsSeen(prev => keys.find(k => typeof k === "number") as number);
+        // Update the total count of pairs seen
+        setTotalPairsSeen(prev => pairs.find(p => typeof p === "number") as number);
 
         setBestSet((prev) => {
           // Filter out null values and sort the batch by score (highest first)
-          const sortedBatch = (keys
-            .filter((k): k is NonNullable<typeof k> => k !== null && typeof k !== "number") as NonNullable<KeyResult>[])
+          const sortedBatch = (pairs
+            .filter((p): p is NonNullable<typeof p> => p !== null && typeof p !== "number") as NonNullable<ReturnType<typeof generatePair>>[])
             .sort((a, b) => b.score - a.score);
 
           if (sortedBatch.length === 0) return prev;
@@ -49,18 +38,18 @@ export function StreamedKeyList(props: {
           // If we have less than 2 items in prev, just merge and sort
           if (prev.length < 2) {
             const newSet = [...sortedBatch, ...prev]
-              .filter((k): k is NonNullable<typeof k> => k !== null)
+              .filter((p): p is NonNullable<typeof p> => p !== null)
               .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0));
             return newSet.slice(0, props.size);
           }
 
           // Ensure prev is sorted (it should be, but just in case)
           const sortedPrev = [...prev]
-            .filter((k): k is NonNullable<typeof k> => k !== null)
+            .filter((p): p is NonNullable<typeof p> => p !== null)
             .sort((a, b) => b.score - a.score);
 
           // Merge the sorted batch with the sorted previous set
-          const merged: NonNullable<KeyResult>[] = [];
+          const merged: NonNullable<ReturnType<typeof generatePair>>[] = [];
           let batchIndex = 0;
           let prevIndex = 0;
 
@@ -115,13 +104,12 @@ export function StreamedKeyList(props: {
   return (
     <div className="w-full">
       <div className="p-2 text-sm text-gray-400 font-mono fixed bottom-0 right-0 bg-black">
-        Keys processed: {totalPairsSeen}
+        Pairs processed: {totalPairsSeen}
       </div>
       <div className="p-2 px-4 font-mono grid grid-cols-2 gap-2 w-full justify-between w-[968px] mx-auto items-center" style={{
         gridTemplateColumns: "1fr 50ch"
       }}>{bestSet.filter((v): v is NonNullable<typeof v> => v !== null).map((v) => {
-        const keyId = 'key' in v ? v.key : v.publicKey;
-        return <Line key={keyId} v={v} copyToClipboard={() => copyToClipboard(v)} keyType={props.keyType} />;
+        return <Line key={v.publicKey} v={v} copyToClipboard={() => copyToClipboard(v)} />;
       })}</div>
     </div>
   );
@@ -142,11 +130,8 @@ const colorMap = {
   "unique": { strong: "text-gold-400", dim: "text-gold-600" },
 }
 
-const Line = memo(({ v, copyToClipboard, keyType }: { v: NonNullable<KeyResult>, copyToClipboard: (v: KeyResult) => void, keyType: 'symmetric' | 'asymmetric' }) => {
+const Line = memo(({ v, copyToClipboard }: { v: NonNullable<ReturnType<typeof generatePair>>, copyToClipboard: (v: ReturnType<typeof generatePair>) => void }) => {
   const color = colorMap[v.score > 4096 ? "legendary" : v.score > 2048 ? "rare" : v.score > 1024 ? "magic" : "normal"];
-
-  const displayKey = 'key' in v ? v.prettyKey : v.prettyPublicKey;
-  const keyId = 'key' in v ? v.key : v.publicKey;
 
   return (
     <>
@@ -160,8 +145,8 @@ const Line = memo(({ v, copyToClipboard, keyType }: { v: NonNullable<KeyResult>,
         type="button"
         tabIndex={0}
       >{
-          displayKey.map((x, index) => {
-            const uniqueKey = `${x}-${index}-${keyId}`;
+          v.prettyPublicKey.map((x, index) => {
+            const uniqueKey = `${x}-${index}-${v.publicKey}`;
             if (v.matches.includes(x.toLowerCase())) {
               return <span className={`${color.strong}`} key={uniqueKey}>{x}</span>
             }
