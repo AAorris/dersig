@@ -1,5 +1,5 @@
 import EncryptionHeroSection from "@/components/EncryptionHeroSection";
-import EncryptionInstructionsSection from "@/components/EncryptionInstructionsSection";
+import InstructionsSection from "@/components/InstructionsSection";
 import EncryptionKeyGeneratorSection from "@/components/EncryptionKeyGeneratorSection";
 import SecurityNotice from "@/components/SecurityNotice";
 
@@ -9,9 +9,9 @@ export default async function EncryptionKeyGeneratorPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
       <div className="container mx-auto px-6 py-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto w-max">
           <EncryptionHeroSection />
-          <EncryptionInstructionsSection />
+          <InstructionsSection />
           <EncryptionKeyGeneratorSection />
           <SecurityNotice />
         </div>

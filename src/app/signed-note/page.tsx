@@ -1,7 +1,5 @@
 import { createSigningKeyPair } from "@/lib/signing";
-import { createEncryptionKeyPair } from "@/lib/encryption";
-import { encryptAndSign, verifyAndDecrypt, parseEciesMessage } from "@/lib/signed-encryption";
-import { parseEncryptedMessage } from "@/lib/encryption";
+import { signNote, verifyNote } from "@/lib/signed-note";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -15,26 +13,11 @@ interface SignedNoteResult {
   error?: string;
   data?: {
     originalMessage: string;
-    topic: string;
-    encryptedMessage: string;
-    decryptedMessage: string;
+    signedNote: string;
     isValid: boolean;
-    senderSigningKeys: {
-      privateKey: string;
-      publicKey: string;
-    };
-    recipientEncryptionKeys: {
-      privateKey: string;
-      publicKey: string;
-    };
-    parsedMessage: {
-      ephemeralPublicKey: string;
-      ciphertext: string;
-      signature: string;
-      iv: string;
-      rawCiphertext: string;
-      authTag: string;
-    };
+    signerPublicKey: string;
+    recipientPublicKey?: string;
+    message: string;
   };
 }
 
@@ -42,67 +25,41 @@ async function processSignedNote(formData: FormData): Promise<SignedNoteResult> 
   'use server';
 
   const message = formData.get('message') as string;
-  const topic = formData.get('topic') as string;
-  const senderSigningPrivateKey = formData.get('senderSigningPrivateKey') as string;
-  const senderSigningPublicKey = formData.get('senderSigningPublicKey') as string;
-  const recipientEncryptionPrivateKey = formData.get('recipientEncryptionPrivateKey') as string;
-  const recipientEncryptionPublicKey = formData.get('recipientEncryptionPublicKey') as string;
+  const signerPrivateKey = formData.get('signerPrivateKey') as string;
+  const signerPublicKey = formData.get('signerPublicKey') as string;
+  const recipientPublicKey = formData.get('recipientPublicKey') as string;
 
-  if (!message || !topic || !senderSigningPrivateKey || !senderSigningPublicKey ||
-    !recipientEncryptionPrivateKey || !recipientEncryptionPublicKey) {
+  if (!message || !signerPrivateKey || !signerPublicKey) {
     return {
       success: false,
-      error: 'All fields are required'
+      error: 'Message and signing keys are required'
     };
   }
 
   try {
-    // Create the signed encrypted message
-    const encryptedMessage = encryptAndSign({
+    // Create the signed note
+    const signedNote = signNote({
       message,
-      senderPrivateSigningKey: senderSigningPrivateKey,
-      receiverPublicEncryptionKey: recipientEncryptionPublicKey,
-      topic,
+      signerPrivateKey,
+      recipientPublicKey: recipientPublicKey || undefined,
+      senderPublicKey: signerPublicKey,
     });
 
-    // Verify and decrypt the message to validate
-    const decryptedMessage = verifyAndDecrypt({
-      message: encryptedMessage,
-      topic,
-      receiverPrivateEncryptionKey: recipientEncryptionPrivateKey,
-      senderPublicSigningKey: senderSigningPublicKey,
+    // Verify the signed note to validate
+    const verification = verifyNote({
+      signedNote,
+      senderPublicKey: signerPublicKey,
     });
-
-    const isValid = decryptedMessage === message;
-
-    // Parse the encrypted message components
-    const { ephemeralPublicKey, ciphertext, signature } = parseEciesMessage(encryptedMessage);
-    const { iv, ciphertext: rawCiphertext, authTag } = parseEncryptedMessage(ciphertext);
 
     return {
       success: true,
       data: {
         originalMessage: message,
-        topic,
-        encryptedMessage,
-        decryptedMessage,
-        isValid,
-        senderSigningKeys: {
-          privateKey: senderSigningPrivateKey,
-          publicKey: senderSigningPublicKey,
-        },
-        recipientEncryptionKeys: {
-          privateKey: recipientEncryptionPrivateKey,
-          publicKey: recipientEncryptionPublicKey,
-        },
-        parsedMessage: {
-          ephemeralPublicKey,
-          ciphertext,
-          signature,
-          iv,
-          rawCiphertext,
-          authTag,
-        }
+        signedNote,
+        isValid: verification.isValid,
+        signerPublicKey: verification.senderPublicKey,
+        recipientPublicKey: verification.recipientPublicKey,
+        message: verification.message,
       }
     };
   } catch (error) {
@@ -118,114 +75,82 @@ export default function SignedNotePage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // Generate fresh key pairs for demonstration
-  const senderSigningKeys = createSigningKeyPair();
-  const recipientEncryptionKeys = createEncryptionKeyPair();
+  // Generate fresh signing key pair for demonstration
+  const signerKeys = createSigningKeyPair();
 
   // Get default values from search params or use defaults
   const defaultMessage = typeof searchParams.message === 'string'
     ? searchParams.message
-    : 'This is a secret message that will be signed and encrypted.';
-  const defaultTopic = typeof searchParams.topic === 'string'
-    ? searchParams.topic
-    : 'signed-note';
+    : 'This is my signed message.';
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Signed Note</h1>
-        <p className="text-muted-foreground">
-          Create a cryptographically signed and encrypted message using Ed25519 signing keys and X25519 encryption keys.
+        <p className="text-muted-foreground mb-4">
+          Sign a text message with your digital signature. Like signing a letter, but cryptographically secure.
         </p>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="font-medium mb-2">What is this?</h3>
+          <p className="text-sm text-muted-foreground mb-3">
+            Think of this like signing a paper document, but digital. When you sign a message:
+          </p>
+          <ul className="text-sm text-muted-foreground space-y-1">
+            <li>• <strong>Anyone can verify</strong> it really came from you</li>
+            <li>• <strong>No one can fake</strong> your signature</li>
+            <li>• <strong>Any changes</strong> to the message will break the signature</li>
+          </ul>
+          <p className="text-sm text-muted-foreground mt-3">
+            Try it below - type a message, hit sign, and see how it works.
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-6">
-        {/* Key Generation Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Generated Key Pairs</CardTitle>
-            <CardDescription>
-              Fresh key pairs generated for this session. In a real application, these would be persistent.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-medium">Sender Signing Keys (Ed25519)</Label>
-                <div className="space-y-2 mt-2">
-                  <div>
-                    <Label htmlFor="senderSigningPublicKey" className="text-xs text-muted-foreground">Public Key</Label>
-                    <Input
-                      id="senderSigningPublicKey"
-                      name="senderSigningPublicKey"
-                      value={senderSigningKeys.publicKey}
-                      readOnly
-                      className="font-mono text-xs"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="senderSigningPrivateKey" className="text-xs text-muted-foreground">Private Key</Label>
-                    <Input
-                      id="senderSigningPrivateKey"
-                      name="senderSigningPrivateKey"
-                      value={senderSigningKeys.privateKey}
-                      readOnly
-                      className="font-mono text-xs"
-                      type="password"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">Recipient Encryption Keys (X25519)</Label>
-                <div className="space-y-2 mt-2">
-                  <div>
-                    <Label htmlFor="recipientEncryptionPublicKey" className="text-xs text-muted-foreground">Public Key</Label>
-                    <Input
-                      id="recipientEncryptionPublicKey"
-                      name="recipientEncryptionPublicKey"
-                      value={recipientEncryptionKeys.publicKey}
-                      readOnly
-                      className="font-mono text-xs"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="recipientEncryptionPrivateKey" className="text-xs text-muted-foreground">Private Key</Label>
-                    <Input
-                      id="recipientEncryptionPrivateKey"
-                      name="recipientEncryptionPrivateKey"
-                      value={recipientEncryptionKeys.privateKey}
-                      readOnly
-                      className="font-mono text-xs"
-                      type="password"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Message Form with Results - Client Component */}
         <SignedNoteForm
-          senderSigningKeys={senderSigningKeys}
-          recipientEncryptionKeys={recipientEncryptionKeys}
+          signerKeys={signerKeys}
           defaultMessage={defaultMessage}
-          defaultTopic={defaultTopic}
           processSignedNote={processSignedNote}
         />
 
-        {/* How it Works Section */}
         <Card>
           <CardHeader>
-            <CardTitle>How it Works</CardTitle>
+            <CardTitle>How Digital Signatures Work</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>1. <strong>Key Generation:</strong> Ed25519 keys for signing and X25519 keys for encryption are generated.</p>
-            <p>2. <strong>Encryption:</strong> The message is encrypted using ECIES (Elliptic Curve Integrated Encryption Scheme).</p>
-            <p>3. <strong>Signing:</strong> The encrypted message is signed with the sender&apos;s private signing key.</p>
-            <p>4. <strong>Verification:</strong> The signature is verified and the message is decrypted to validate the process.</p>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <h4 className="font-medium mb-2">The Process</h4>
+                <ol className="space-y-1 text-muted-foreground">
+                  <li>1. <strong>You have a key pair</strong>: A private key (secret) and public key (shareable)</li>
+                  <li>2. <strong>Signing</strong>: Your private key creates a unique signature for your message</li>
+                  <li>3. <strong>Verifying</strong>: Anyone with your public key can prove you signed it</li>
+                  <li>4. <strong>Tampering</strong>: Change even one letter and the signature breaks</li>
+                </ol>
+              </div>
+              <div>
+                <h4 className="font-medium mb-2">Why This Matters</h4>
+                <ul className="space-y-1 text-muted-foreground">
+                  <li>• Software updates (proving they're from the real company)</li>
+                  <li>• Legal documents (digital contracts)</li>
+                  <li>• Cryptocurrency (proving you own your coins)</li>
+                  <li>• Email security (proving emails aren't spoofed)</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 border rounded-lg p-4">
+              <h4 className="font-medium mb-2">The Format</h4>
+              <p className="text-sm text-muted-foreground mb-2">Your signed message looks like this:</p>
+              <pre className="text-xs bg-white border rounded p-2 font-mono">
+                {`~~~
+Your message goes here
+~~~
+your-public-key-here
+signature-goes-here`}
+              </pre>
+              <p className="text-xs text-muted-foreground mt-2">Simple, readable, and cryptographically secure.</p>
+            </div>
           </CardContent>
         </Card>
       </div>

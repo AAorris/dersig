@@ -8,7 +8,7 @@ export default function CallToAction() {
         Begin your journey by generating your cryptographic identity
       </p>
       <Link
-        href="/key"
+        href="/key/signing"
         className="inline-flex items-center px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors duration-200 shadow-lg hover:shadow-xl"
       >
         Generate Keys Now

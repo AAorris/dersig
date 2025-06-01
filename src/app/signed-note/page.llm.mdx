@@ -1,0 +1,60 @@
+# Signed Note
+
+Sign a text message with your digital signature. Like signing a letter, but cryptographically secure.
+
+{/* MARKER: what-is-this */}
+## What is this?
+
+Think of this like signing a paper document, but digital. When you sign a message:
+
+- **Anyone can verify** it really came from you
+- **No one can fake** your signature  
+- **Any changes** to the message will break the signature
+
+Try it below - type a message, hit sign, and see how it works.
+
+{/* MARKER: message-form */}
+## Sign Your Message
+
+Write anything you want to sign. Could be a note, a promise, or just "hello world".
+
+**Default message**: "This is my signed message."
+**Your signature**: Generated fresh each time you visit
+
+{/* MARKER: results-display */}
+## Your Signed Message
+
+After signing, you'll see:
+
+- **The signed note**: Your message wrapped with cryptographic proof
+- **Verification**: We immediately check if the signature is valid
+- **The parts**: See how your message, signature, and keys fit together
+
+{/* MARKER: how-it-works */}
+## How Digital Signatures Work
+
+1. **You have a key pair**: A private key (secret) and public key (shareable)
+2. **Signing**: Your private key creates a unique signature for your message
+3. **Verifying**: Anyone with your public key can prove you signed it
+4. **Tampering**: Change even one letter and the signature breaks
+
+### Why This Matters
+
+Digital signatures are everywhere:
+- Software updates (proving they're from the real company)
+- Legal documents (digital contracts)
+- Cryptocurrency (proving you own your coins)
+- Email security (proving emails aren't spoofed)
+
+### The Format
+
+Your signed message looks like this:
+```
+~~~
+Your message goes here
+~~~
+your-public-key-here
+signature-goes-here
+```
+
+Simple, readable, and cryptographically secure. 
