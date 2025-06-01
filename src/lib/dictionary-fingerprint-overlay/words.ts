@@ -1,3 +1,4 @@
+/* eslint-disable import/no-anonymous-default-export */
 export default `100
 1000
 10000

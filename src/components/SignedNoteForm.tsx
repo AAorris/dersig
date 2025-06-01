@@ -154,7 +154,7 @@ export function SignedNoteForm({
             {enableEncryption && (
               <div>
                 <Label htmlFor="recipientEncryptionKey" className="text-sm">
-                  Recipient's Encryption Key (required for encryption)
+                  Recipient&apos;s Encryption Key (required for encryption)
                 </Label>
                 <Input
                   id="recipientEncryptionKey"
