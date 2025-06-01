@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface SignedNoteResult {
   success: boolean;
@@ -18,17 +19,21 @@ interface SignedNoteResult {
     signerPublicKey: string;
     recipientPublicKey?: string;
     message: string;
+    isEncrypted?: boolean;
+    encryptedMessage?: string;
   };
 }
 
 interface SignedNoteFormProps {
   signerKeys: { privateKey: string; publicKey: string };
+  encryptionKeys: { privateKey: string; publicKey: string };
   defaultMessage: string;
   processSignedNote: (formData: FormData) => Promise<SignedNoteResult>;
 }
 
 export function SignedNoteForm({
   signerKeys,
+  encryptionKeys,
   defaultMessage,
   processSignedNote
 }: SignedNoteFormProps) {
@@ -41,6 +46,7 @@ export function SignedNoteForm({
     error?: string;
   } | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [enableEncryption, setEnableEncryption] = useState(false);
 
   async function handleSubmit(formData: FormData) {
     setIsLoading(true);
@@ -120,6 +126,7 @@ export function SignedNoteForm({
             {/* Hidden inputs for keys */}
             <input type="hidden" name="signerPrivateKey" value={signerKeys.privateKey} />
             <input type="hidden" name="signerPublicKey" value={signerKeys.publicKey} />
+            <input type="hidden" name="enableEncryption" value={enableEncryption ? 'on' : 'off'} />
 
             <div>
               <Label htmlFor="message">Your Message</Label>
@@ -132,6 +139,35 @@ export function SignedNoteForm({
                 required
               />
             </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="enableEncryptionCheckbox"
+                checked={enableEncryption}
+                onCheckedChange={(checked) => setEnableEncryption(checked === true)}
+              />
+              <Label htmlFor="enableEncryptionCheckbox" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Enable encryption (message will only be readable by recipient)
+              </Label>
+            </div>
+
+            {enableEncryption && (
+              <div>
+                <Label htmlFor="recipientEncryptionKey" className="text-sm">
+                  Recipient's Encryption Key (required for encryption)
+                </Label>
+                <Input
+                  id="recipientEncryptionKey"
+                  name="recipientEncryptionKey"
+                  placeholder="Recipient's public encryption key"
+                  className="font-mono text-xs"
+                  required={enableEncryption}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  For demo purposes, you can use: {encryptionKeys.publicKey}
+                </p>
+              </div>
+            )}
 
             <div>
               <Label htmlFor="recipientPublicKey" className="text-sm">
@@ -157,7 +193,7 @@ export function SignedNoteForm({
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing...' : 'Sign Message'}
+              {isLoading ? 'Processing...' : enableEncryption ? 'Encrypt & Sign Message' : 'Sign Message'}
             </Button>
           </form>
         </CardContent>
@@ -186,9 +222,17 @@ export function SignedNoteForm({
                 <Badge variant={result.data.isValid ? "default" : "destructive"}>
                   {result.data.isValid ? "Valid Signature" : "Invalid Signature"}
                 </Badge>
+                {result.data.isEncrypted && (
+                  <Badge variant="secondary">
+                    Encrypted
+                  </Badge>
+                )}
               </CardTitle>
               <CardDescription>
-                Your message wrapped with cryptographic proof. Anyone can verify this came from you.
+                {result.data.isEncrypted
+                  ? "Your encrypted message wrapped with cryptographic proof. Only the intended recipient can read the content."
+                  : "Your message wrapped with cryptographic proof. Anyone can verify this came from you."
+                }
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -201,9 +245,27 @@ export function SignedNoteForm({
                   className="mt-1 font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  This is what you would share with others. They can verify it came from you.
+                  {result.data.isEncrypted
+                    ? "This contains encrypted content. Only the recipient with the matching private key can decrypt it."
+                    : "This is what you would share with others. They can verify it came from you."
+                  }
                 </p>
               </div>
+
+              {result.data.isEncrypted && result.data.encryptedMessage && (
+                <div>
+                  <Label className="text-sm font-medium">Raw Encrypted Message</Label>
+                  <Textarea
+                    value={result.data.encryptedMessage}
+                    readOnly
+                    rows={Math.min(Math.max(4, result.data.encryptedMessage.split('\n').length + 1), 8)}
+                    className="mt-1 font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This is the encrypted content before being wrapped in the signed note format.
+                  </p>
+                </div>
+              )}
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
@@ -216,13 +278,20 @@ export function SignedNoteForm({
                   />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">Verified Message</Label>
+                  <Label className="text-sm font-medium">
+                    {result.data.isEncrypted ? "Encrypted Content" : "Verified Message"}
+                  </Label>
                   <Textarea
                     value={result.data.message}
                     readOnly
                     rows={Math.min(Math.max(2, Math.ceil(result.data.message.length / 40)), 6)}
-                    className="mt-1"
+                    className="mt-1 font-mono text-xs"
                   />
+                  {result.data.isEncrypted && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This encrypted content can only be decrypted by the recipient.
+                    </p>
+                  )}
                 </div>
               </div>
 

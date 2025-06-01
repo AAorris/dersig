@@ -1,5 +1,7 @@
 import { createSigningKeyPair } from "@/lib/signing";
+import { createEncryptionKeyPair } from "@/lib/encryption";
 import { signNote, verifyNote } from "@/lib/signed-note";
+import { encryptAndSign, verifyAndDecrypt } from "@/lib/signed-encryption";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -18,6 +20,8 @@ interface SignedNoteResult {
     signerPublicKey: string;
     recipientPublicKey?: string;
     message: string;
+    isEncrypted?: boolean;
+    encryptedMessage?: string;
   };
 }
 
@@ -28,6 +32,16 @@ async function processSignedNote(formData: FormData): Promise<SignedNoteResult> 
   const signerPrivateKey = formData.get('signerPrivateKey') as string;
   const signerPublicKey = formData.get('signerPublicKey') as string;
   const recipientPublicKey = formData.get('recipientPublicKey') as string;
+  const enableEncryption = formData.get('enableEncryption') === 'on';
+  const recipientEncryptionKey = formData.get('recipientEncryptionKey') as string;
+
+  console.log('Form data received:', {
+    message: `${message?.substring(0, 50)}...`,
+    hasSignerPrivateKey: !!signerPrivateKey,
+    hasSignerPublicKey: !!signerPublicKey,
+    enableEncryption,
+    hasRecipientEncryptionKey: !!recipientEncryptionKey
+  });
 
   if (!message || !signerPrivateKey || !signerPublicKey) {
     return {
@@ -36,8 +50,56 @@ async function processSignedNote(formData: FormData): Promise<SignedNoteResult> 
     };
   }
 
+  if (enableEncryption && !recipientEncryptionKey) {
+    return {
+      success: false,
+      error: 'Recipient encryption key is required when encryption is enabled'
+    };
+  }
+
   try {
-    // Create the signed note
+    if (enableEncryption && recipientEncryptionKey) {
+      console.log('Creating encrypted message...');
+      // Create encrypted and signed message
+      const encryptedMessage = encryptAndSign({
+        message,
+        senderPrivateSigningKey: signerPrivateKey,
+        receiverPublicEncryptionKey: recipientEncryptionKey,
+        topic: 'signed-note'
+      });
+
+      // For encrypted messages, we create a signed note that contains the encrypted content
+      const signedNote = signNote({
+        message: encryptedMessage,
+        signerPrivateKey,
+        recipientPublicKey,
+        senderPublicKey: signerPublicKey,
+      });
+
+      // Verify the signed note
+      const verification = verifyNote({
+        signedNote,
+        senderPublicKey: signerPublicKey,
+      });
+
+      console.log('Encrypted message created successfully');
+      return {
+        success: true,
+        data: {
+          originalMessage: message,
+          signedNote,
+          isValid: verification.isValid,
+          signerPublicKey: verification.senderPublicKey,
+          recipientPublicKey: verification.recipientPublicKey,
+          message: verification.message,
+          isEncrypted: true,
+          encryptedMessage,
+        }
+      };
+    }
+
+    console.log('Creating regular signed note...');
+    // Create the regular signed note
     const signedNote = signNote({
       message,
       signerPrivateKey,
@@ -51,6 +113,7 @@ async function processSignedNote(formData: FormData): Promise<SignedNoteResult> 
       senderPublicKey: signerPublicKey,
     });
 
+    console.log('Regular signed note created successfully');
     return {
       success: true,
       data: {
@@ -60,9 +123,11 @@ async function processSignedNote(formData: FormData): Promise<SignedNoteResult> 
         signerPublicKey: verification.senderPublicKey,
         recipientPublicKey: verification.recipientPublicKey,
         message: verification.message,
+        isEncrypted: false,
       }
     };
   } catch (error) {
+    console.error('Error processing signed note:', error);
     return {
       success: false,
       error: `Failed to process signed note: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -77,6 +142,9 @@ export default function SignedNotePage({
 }) {
   // Generate fresh signing key pair for demonstration
   const signerKeys = createSigningKeyPair();
+
+  // Generate fresh encryption key pair for demonstration
+  const encryptionKeys = createEncryptionKeyPair();
 
   // Get default values from search params or use defaults
   const defaultMessage = typeof searchParams.message === 'string'
@@ -101,7 +169,7 @@ export default function SignedNotePage({
             <li>• <strong>Any changes</strong> to the message will break the signature</li>
           </ul>
           <p className="text-sm text-muted-foreground mt-3">
-            Try it below - type a message, hit sign, and see how it works.
+            Try it below - type a message, hit sign, and see how it works. You can also enable encryption to make the message readable only by the intended recipient.
           </p>
         </div>
       </div>
@@ -109,6 +177,7 @@ export default function SignedNotePage({
       <div className="grid gap-6">
         <SignedNoteForm
           signerKeys={signerKeys}
+          encryptionKeys={encryptionKeys}
           defaultMessage={defaultMessage}
           processSignedNote={processSignedNote}
         />
