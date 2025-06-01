@@ -12,3 +12,26 @@ After outputting the summary, list warnings about changes that perhaps shouldn't
 The result should be formatted as a git commit message, so plain text
 
 output a snippet I can copy or write to a text file
+
+Refactored StreamedKeyList components to use shared utilities
+
+• Created `src/app/key/lib.ts` with shared utilities:
+  - `KeyPair` interface for type consistency
+  - `colorMap` constant for score-based color mapping
+  - `getColorForScore()` function to determine color tier
+  - `formatClipboardText()` function for consistent clipboard formatting
+  - `useStreamedKeys()` hook that encapsulates all streaming logic and state management
+
+• Updated `src/app/key/encryption/streamed-key-list.tsx`:
+  - Removed duplicate streaming logic, state management, and color mapping
+  - Now uses shared `useStreamedKeys` hook and `getColorForScore` function
+  - Maintained encryption-specific unique key generation pattern
+  - Reduced component from 158 lines to 48 lines
+
+• Updated `src/app/key/signing/streamed-key-list.tsx`:
+  - Removed duplicate streaming logic, state management, and color mapping
+  - Now uses shared `useStreamedKeys` hook and `getColorForScore` function
+  - Maintained signing-specific key generation pattern (simpler than encryption)
+  - Reduced component from 158 lines to 46 lines
+
+The refactoring eliminates ~200 lines of duplicate code while maintaining the same functionality and preserving the subtle differences between encryption and signing key display patterns.
