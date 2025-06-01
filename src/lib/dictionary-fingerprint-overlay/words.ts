@@ -3082,7 +3082,6 @@ bistre
 bistred
 bistro
 bit
-bitch
 bitchy
 bite
 biter
@@ -6493,7 +6492,6 @@ cuneate
 cuneus
 cunner
 cunning
-cunt
 cuon
 cup
 cup_tie
@@ -10247,11 +10245,6 @@ ftp
 fucales
 fuchs
 fuchsia
-fuck
-fuck_up
-fucker
-fucking
-fuckup
 fucoid
 fucus
 fuddle
@@ -13555,7 +13548,6 @@ jetsam
 jetting
 jetty
 jevons
-jew
 jewbush
 jewel
 jeweled
@@ -14075,7 +14067,6 @@ kildeer
 kiley
 kiliwa
 kiliwi
-kill
 killer
 killing
 killjoy
@@ -14155,7 +14146,6 @@ kitty
 kitul
 kivu
 kiwi
-kkk
 klamath
 klan
 klavern
@@ -17790,11 +17780,7 @@ niff
 niffy
 nifty
 nigella
-niger
 nigeria
-nigga
-niggard
-nigger
 niggle
 niggler
 nigh
@@ -24744,13 +24730,11 @@ sphere
 spheric
 sphinx
 sphyrna
-spic
 spica
 spicate
 spice
 spicery
 spicily
-spick
 spicule
 spicy
 spider

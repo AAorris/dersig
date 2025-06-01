@@ -1,16 +1,23 @@
 'use client';
 import { readStreamableValue, type StreamableValue } from 'ai/rsc';
 import type { generatePair } from './lib';
-import { memo, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 
 export function StreamedKeyList(props: {
   size: number
-  streamableValue: StreamableValue<ReturnType<typeof generatePair>[]>
+  streamableValue: StreamableValue<(ReturnType<typeof generatePair> | number)[]>
 }) {
   // const values = useRef<ReturnType<typeof generatePair>[]>([]);
   const [bestSet, setBestSet] = useState<ReturnType<typeof generatePair>[]>([]);
   const [totalPairsSeen, setTotalPairsSeen] = useState<number>(0);
   const [error, setError] = useState<Error | null>(null);
+
+  const copyToClipboard = useCallback((pair: ReturnType<typeof generatePair>) => {
+    navigator.clipboard.writeText(
+      `${pair.matches.join('_').toUpperCase()}_${Number(pair.score).toFixed(0)}=${pair.prettyPublicKey.join('')},${pair.privateKey}`
+    );
+  }, []);
+
   useEffect(() => {
     let done = false;
     (async () => {
@@ -19,13 +26,13 @@ export function StreamedKeyList(props: {
         if (done) break;
 
         // Update the total count of pairs seen
-        setTotalPairsSeen(prev => prev + pairs.filter(p => p !== null).length);
+        setTotalPairsSeen(prev => pairs.find(p => typeof p === "number") as number);
 
         // values.current.push(pair)
         setBestSet((prev) => {
           // Filter out null values and sort the batch by score (highest first)
-          const sortedBatch = pairs
-            .filter((p): p is NonNullable<typeof p> => p !== null)
+          const sortedBatch = (pairs
+            .filter((p): p is NonNullable<typeof p> => p !== null && typeof p !== "number") as NonNullable<ReturnType<typeof generatePair>>[])
             .sort((a, b) => b.score - a.score);
 
           if (sortedBatch.length === 0) return prev;
@@ -99,12 +106,12 @@ export function StreamedKeyList(props: {
 
   return (
     <div className="w-full">
-      <div className="p-2 text-sm text-gray-400 font-mono">
-        Pairs processed: {totalPairsSeen.toLocaleString()}
+      <div className="p-2 text-sm text-gray-400 font-mono fixed bottom-0 right-0 bg-black">
+        Pairs processed: {totalPairsSeen}
       </div>
-      <div className="p-2 font-mono grid grid-cols-3 gap-2 w-full justify-between" style={{
-        gridTemplateColumns: "300px 1fr 43ch"
-      }}>{bestSet.filter((v): v is NonNullable<typeof v> => v !== null).map((v) => <Line key={v.publicKey} v={v} />)}</div>
+      <div className="p-2 px-4 font-mono grid grid-cols-2 gap-2 w-full justify-between w-[968px] mx-auto items-center" style={{
+        gridTemplateColumns: "1fr 50ch"
+      }}>{bestSet.filter((v): v is NonNullable<typeof v> => v !== null).map((v) => <Line key={v.publicKey} v={v} copyToClipboard={() => copyToClipboard(v)} />)}</div>
     </div>
   );
 }
@@ -124,21 +131,27 @@ const colorMap = {
   "unique": { strong: "text-gold-400", dim: "text-gold-600" },
 }
 
-const Line = memo(({ v }: { v: NonNullable<ReturnType<typeof generatePair>> }) => {
+const Line = memo(({ v, copyToClipboard }: { v: NonNullable<ReturnType<typeof generatePair>>, copyToClipboard: (v: ReturnType<typeof generatePair>) => void }) => {
   const color = colorMap[v.score > 4096 ? "legendary" : v.score > 2048 ? "rare" : v.score > 1024 ? "magic" : "normal"];
   return (
     <>
-      <span className={color.strong}>
+      <span className={`${color.strong}`}>
         {`${v.matches.join(' ')} ${Number(v.score).toFixed(0)}`}
       </span>
-      <span className={`text-right cursor-pointer ${color.dim}`}>{
-        v?.prettyPublicKey.map(x => {
-          if (v.matches.includes(x.toLowerCase())) {
-            return <span className={`${color.strong}`} key={x}>{x}</span>
-          }
-          return <span key={x}>{x}</span>;
-        })}</span>
-      <span className={`text-right ${color.dim}`}>{v?.privateKey}</span>
+      <button
+        className={`text-right cursor-pointer ${color.dim} h-[40px]`}
+        onClick={() => copyToClipboard(v)}
+        onKeyDown={() => copyToClipboard(v)}
+        type="button"
+        tabIndex={0}
+      >{
+          v.prettyPublicKey.map(x => {
+            if (v.matches.includes(x.toLowerCase())) {
+              return <span className={`${color.strong}`} key={x}>{x}</span>
+            }
+            return <span key={x}>{x}</span>;
+          })}</button>
+      {/* <span className={`text-right ${color.dim}`}>{v?.privateKey}</span> */}
     </>
   )
 })

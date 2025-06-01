@@ -1,0 +1,30 @@
+---
+description: 
+globs: *.llm.mdx
+alwaysApply: false
+---
+(extract-components) When asked to refactor styled components from a page.tsx:
+
+1. Identify visually distinct sections with their own styling (cards, hero sections, feature grids, etc.)
+2. Extract each section into a separate component file in `src/components`
+3. Component names should be descriptive and PascalCase (e.g., `HeroSection`, `FeatureCard`, `CallToAction`)
+4. Components should take no props initially - they should be self-contained with their content and styling
+5. Use proper TypeScript and include all necessary imports
+6. Replace the original page.tsx sections with the new component imports
+
+(mdx-markup) After extracting components, update the corresponding `.llm.mdx` file:
+1. Wrap relevant content sections with semantic markers: `<ComponentName>content</ComponentName>`
+2. The content inside markers should be the original MDX text that describes what the component represents
+3. Marker names should exactly match the extracted component names
+4. Preserve the original MDX structure and hierarchy
+5. Add comments above markers to explain the component's purpose: `<!-- HeroSection: Main landing area with title and CTA -->`
+
+(sync-content) Ensure the MDX markers and TSX components stay synchronized:
+- MDX content inside markers describes the semantic meaning
+- TSX components implement the visual representation
+- Changes to either should be reflected in both files
+- Use the marker content as the source of truth for component text content
+
+Example transformation:
+MDX: `# Welcome to Our Platform` → `{/* HeroSection: Main landing area */}\n<HeroSection>\n# Welcome to Our Platform\n</HeroSection>`
+TSX: Extract hero styling into `src/components/HeroSection.tsx` and import in page.tsx 

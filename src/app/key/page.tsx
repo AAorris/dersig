@@ -1,22 +1,21 @@
-import { Suspense } from "react";
-import { streamKeys } from "./lib";
-import { StreamedKeyList } from "./streamed-key-list";
+import HeroSection from "@/components/HeroSection";
+import InstructionsSection from "@/components/InstructionsSection";
+import KeyGeneratorSection from "@/components/KeyGeneratorSection";
+import SecurityNotice from "@/components/SecurityNotice";
 
 export const dynamic = 'force-dynamic';
 
-export default async function Page() {
+export default async function KeyGeneratorPage() {
   return (
-    <div className="bg-black flex flex-col gap-4 w-full min-h-[100vh] lg:text-lg xl:text-xl">
-      <Suspense>
-        <Content />
-      </Suspense>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
+      <div className="container mx-auto px-6 py-8">
+        <div className="max-w-6xl mx-auto">
+          <HeroSection />
+          <InstructionsSection />
+          <KeyGeneratorSection />
+          <SecurityNotice />
+        </div>
+      </div>
     </div>
-  )
-}
-
-function Content() {
-  const { streamableValue } = streamKeys(process.env.VERCEL_ENV ? 1_000 : 60_000);
-  return (
-    <StreamedKeyList streamableValue={streamableValue.value} size={50} />
-  )
+  );
 }

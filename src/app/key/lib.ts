@@ -32,7 +32,8 @@ export function streamKeys(timeout = 10_000) {
 	const streamableValue = createStreamableValue();
 	let isRunning = true;
 	let isCancelled = false;
-	let batch: ReturnType<typeof generatePair>[] = [];
+	let batch: (ReturnType<typeof generatePair> | number)[] = [];
+	let lastBatchTime = Date.now();
 	let lowWatermark = 0;
 	let seen = 0;
 	const deadline = Date.now() + timeout;
@@ -53,13 +54,15 @@ export function streamKeys(timeout = 10_000) {
 				batch.push(gen);
 				lowWatermark = lowWatermark + (gen.score - lowWatermark) * 0.01;
 			}
-			if (seen % 1000 === 0) {
+			if (seen % 1000 === 0 || ts - lastBatchTime > 300) {
+				batch.push(seen);
 				streamableValue.update(batch);
 				batch = [];
-				seen = 0;
+				lastBatchTime = ts;
 			}
 
 			if (ts > deadline) {
+				batch.push(seen);
 				streamableValue.update(batch);
 				batch = [];
 				resolve(undefined);

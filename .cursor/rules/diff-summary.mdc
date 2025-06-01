@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Output a commit message with a one line summary and then details below.
+
+Use `git diff --staged` to get staged changes
+
+After outputting the summary, list warnings about changes that perhaps shouldn't be committed
